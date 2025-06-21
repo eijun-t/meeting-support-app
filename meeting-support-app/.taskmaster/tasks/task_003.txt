@@ -1,0 +1,42 @@
+# Task ID: 3
+# Title: Electronの導入とメインプロセスの設定
+# Status: done
+# Dependencies: 2
+# Priority: medium
+# Description: 既存のNext.jsプロジェクトにElectronを統合し、デスクトップアプリケーションとして動作させるための基本設定を行います。
+# Details:
+1. `electron`, `electron-builder`, `concurrently` などの必要なライブラリをインストールします。
+2. プロジェクトのルートにElectronのメインプロセスファイル（例: `main.js`）を作成します。
+3. `package.json`を編集し、Electronアプリを開発・ビルドするためのスクリプト（例: `dev`, `build`）を追加します。
+4. Next.jsの開発サーバーとElectronのプロセスを同時に起動できるように設定します。
+
+このタスクは、システム音声やマイク音声を扱う後続タスクの前提となります。
+
+# Test Strategy:
+Electronアプリが正常に起動し、Next.jsの画面がElectronウィンドウ内に表示されることを確認する。開発・ビルド用スクリプトが正しく動作することを検証する。
+
+# Subtasks:
+## 1. Electron関連ライブラリのインストール [done]
+### Dependencies: None
+### Description: electron, electron-builder, concurrently など、Electron統合に必要なライブラリをプロジェクトに追加する。
+### Details:
+npmまたはyarnを使い、必要なパッケージをインストールする。
+
+## 2. Electronメインプロセスファイルの作成 [done]
+### Dependencies: 3.1
+### Description: プロジェクトのルートにElectronのエントリーポイントとなるメインプロセスファイル（例: main.js）を作成する。
+### Details:
+ElectronのBrowserWindowでNext.jsの開発サーバーまたはビルド済みファイルを表示できるように設定する。
+
+## 3. package.jsonのスクリプト追加・編集 [done]
+### Dependencies: 3.2
+### Description: Electronアプリの開発・ビルド・起動用のnpmスクリプト（dev, buildなど）をpackage.jsonに追加・編集する。
+### Details:
+Next.jsとElectronのプロセスを同時に起動できるようにconcurrentlyを利用する。
+
+## 4. ElectronとNext.jsの同時起動確認 [done]
+### Dependencies: 3.3
+### Description: 開発用スクリプトでNext.jsサーバーとElectronアプリが同時に起動し、Electronウィンドウ内でNext.jsの画面が表示されることを確認する。
+### Details:
+起動手順をREADME等に記載し、動作確認を行う。
+

@@ -1,0 +1,78 @@
+{
+  "name": "meeting-support-app",
+  "version": "0.1.0",
+  "private": true,
+  "main": "main.js",
+  "homepage": "./",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "electron": "cross-env NODE_ENV=development electron .",
+    "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && npm run electron\"",
+    "electron-build": "npm run build && npm run export && electron-builder",
+    "export": "next export",
+    "dist": "npm run build && npm run export && electron-builder --publish=never"
+  },
+  "dependencies": {
+    "lightningcss": "^1.30.1",
+    "next": "15.3.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
+    "electron": "^36.5.0",
+    "electron-builder": "^26.0.12",
+    "eslint": "^9",
+    "eslint-config-next": "15.3.4",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "wait-on": "^8.0.3"
+  },
+  "build": {
+    "appId": "com.meetingsupport.app",
+    "productName": "AI会議アシスタント",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "out/**/*",
+      "main.js",
+      "preload.js",
+      "node_modules/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        }
+      ]
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64"]
+        }
+      ]
+    }
+  }
+}

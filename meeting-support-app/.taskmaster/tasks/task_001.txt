@@ -1,0 +1,37 @@
+# Task ID: 1
+# Title: Setup Project Repository
+# Status: done
+# Dependencies: None
+# Priority: high
+# Description: Initialize a new Next.js project with TypeScript and Tailwind CSS, following the specified tech stack.
+# Details:
+Run `npx create-next-app@latest --typescript`, install Tailwind CSS via official docs, and set up basic project structure. Ensure all dependencies are correctly installed and configured.
+
+# Test Strategy:
+Verify project starts with `npm run dev` and Tailwind CSS is applied to a test component.
+
+# Subtasks:
+## 1. Initialize the Git Repository and Next.js Project with TypeScript [done]
+### Dependencies: None
+### Description: Set up a new Git repository and create a Next.js project using TypeScript. This forms the foundation for the project and ensures version control is in place.
+### Details:
+Run `git init` to initialize the repository. Use `npx create-next-app@latest --typescript` to scaffold a new Next.js project with TypeScript support.
+
+## 2. Install and Configure Tailwind CSS [done]
+### Dependencies: 1.1
+### Description: Add Tailwind CSS and its dependencies to the Next.js project, and generate the required configuration files.
+### Details:
+Install Tailwind CSS, PostCSS, and Autoprefixer using `npm install -D tailwindcss postcss autoprefixer`. Run `npx tailwindcss init -p` to create `tailwind.config.js` and `postcss.config.js`. Update the Tailwind config as needed for your project.
+
+## 3. Set Up Global Styles with Tailwind Directives [done]
+### Dependencies: 1.2
+### Description: Create or update the global CSS file to include Tailwind's base, components, and utilities imports, and ensure it is imported in the main layout.
+### Details:
+Edit `styles/globals.css` to include `@import 'tailwindcss/base';`, `@import 'tailwindcss/components';`, and `@import 'tailwindcss/utilities';`. Import this CSS file in your main layout or `_app.tsx`.
+
+## 4. Verify Setup with a Test Component [done]
+### Dependencies: 1.3
+### Description: Create a simple React component that uses Tailwind CSS classes to confirm that the setup is working as expected.
+### Details:
+Add a new component (e.g., `TestComponent.tsx`) that uses Tailwind utility classes. Render it in a page and verify that the styles are applied correctly.
+
