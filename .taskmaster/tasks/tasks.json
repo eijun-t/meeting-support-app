@@ -231,74 +231,10 @@
             "title": "動作テストと評価",
             "description": "Electron環境でのリアルタイム文字起こし機能の動作確認と評価を行う。",
             "dependencies": [
-              4,
-              5
+              4
             ],
             "details": "様々な音声（マイク、システム音、異なる話者、ノイズ環境）でテストし、精度・遅延・安定性を評価。問題点があれば改善案をまとめる。",
             "status": "done"
-          }
-        ]
-      },
-      {
-        "id": 5,
-        "title": "Session Management",
-        "description": "Implement meeting session start/stop controls and state management.",
-        "details": "Add buttons to start and stop meetings. Manage session state (active/inactive) and clear/reset data as needed.",
-        "testStrategy": "Test session start/stop functionality and state transitions.",
-        "priority": "medium",
-        "dependencies": [
-          2,
-          4
-        ],
-        "status": "pending",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Implement Start/Stop Controls",
-            "description": "Develop UI components and logic to allow users to start and stop sessions. Ensure controls trigger appropriate state changes and actions.",
-            "dependencies": [],
-            "details": "Create React components (e.g., buttons) for starting and stopping sessions. Connect these controls to session state logic using hooks or Redux actions as appropriate.",
-            "status": "pending"
-          },
-          {
-            "id": 2,
-            "title": "Manage Session State",
-            "description": "Set up session state management using a suitable approach (e.g., React context, Redux, or a session management library). Ensure session data is stored, updated, and accessible throughout the app.",
-            "dependencies": [
-              1
-            ],
-            "details": "Integrate a session management solution such as redux-react-session or react-session-api. Implement logic to handle session creation, updates, and termination based on user actions.",
-            "status": "pending"
-          },
-          {
-            "id": 3,
-            "title": "Implement Data Clearing and Resetting",
-            "description": "Add functionality to clear or reset session-related data when a session ends or is manually reset by the user.",
-            "dependencies": [
-              2
-            ],
-            "details": "Ensure that session data is properly cleared from state and storage (e.g., cookies, sessionStorage) when stopping or resetting a session. Provide UI feedback for successful data clearing.",
-            "status": "pending"
-          },
-          {
-            "id": 4,
-            "title": "Update the UI Based on Session State",
-            "description": "Ensure the UI reflects the current session state, displaying appropriate controls, messages, and data depending on whether a session is active, stopped, or reset.",
-            "dependencies": [
-              3
-            ],
-            "details": "Use conditional rendering to show/hide controls and information based on session state. Update UI elements in response to state changes using hooks or state selectors.",
-            "status": "pending"
-          },
-          {
-            "id": 5,
-            "title": "Test State Transitions and Data Consistency",
-            "description": "Write and execute tests to verify correct behavior of session start/stop, data clearing, and UI updates. Ensure state transitions are handled reliably and data remains consistent.",
-            "dependencies": [
-              4
-            ],
-            "details": "Create unit and integration tests for session controls, state management logic, and UI updates. Test edge cases such as rapid start/stop actions and unexpected resets.",
-            "status": "pending"
           }
         ]
       },
@@ -310,8 +246,7 @@
         "testStrategy": "Test summary generation timing and accuracy using sample transcripts.",
         "priority": "medium",
         "dependencies": [
-          4,
-          5
+          4
         ],
         "status": "pending",
         "subtasks": [
@@ -368,9 +303,7 @@
             "id": 6,
             "title": "Test with Sample Data",
             "description": "Conduct comprehensive testing using sample transcript data to validate the entire workflow and ensure robustness.",
-            "dependencies": [
-              5
-            ],
+            "dependencies": [],
             "details": "Test all components together, including timer accuracy, transcript extraction, summarization quality, UI updates, and edge case handling.",
             "status": "pending"
           }
@@ -382,8 +315,7 @@
         "description": "文字起こしされたテキストや要約などのセッションデータを、ユーザーのPCのファイルシステムに直接保存します。",
         "status": "pending",
         "dependencies": [
-          4,
-          5
+          4
         ],
         "priority": "medium",
         "details": "1. Node.js `fs`モジュールの利用: ElectronのメインプロセスからNode.jsの`fs`（File System）モジュールを使い、ファイルの読み書きを実装します。\n2. 保存ディレクトリの決定: アプリケーションのデータを保存するための標準的な場所（例: `appData`ディレクトリ）を取得し、そこに専用フォルダを作成します。\n3. データ形式の設計: 保存するデータ（セッションごとの文字起こし、要約など）をどのような形式（例: JSON, テキストファイル）で、どのようなファイル名で保存するかを設計します。\n4. 保存・読込処理の実装: 会議の終了時などにセッションデータをファイルに書き出し、過去のデータを読み込む機能を実装します。\n\nブラウザのストレージと異なり、PCのファイルシステムに直接アクセスするため、より永続的で大容量のデータ管理が可能になります。",
@@ -450,7 +382,6 @@
           2,
           3,
           4,
-          5,
           6,
           7
         ],
@@ -508,9 +439,7 @@
             "id": 6,
             "title": "Coordinate State and Data Flow",
             "description": "Establish robust state management and data flow between all components to ensure seamless user experience and data consistency.",
-            "dependencies": [
-              5
-            ],
+            "dependencies": [],
             "details": "Synchronize UI updates with microphone, transcription, summary, and storage states. Handle transitions between states (e.g., recording to transcribing) and preserve user context.",
             "status": "pending"
           },
@@ -595,8 +524,7 @@
             "dependencies": [
               2,
               3,
-              4,
-              5
+              4
             ],
             "details": "Simulate various failure modes and verify that the system responds appropriately, logs errors, and provides meaningful feedback to users.",
             "status": "pending"
