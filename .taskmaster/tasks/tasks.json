@@ -170,7 +170,7 @@
         "id": 4,
         "title": "Electronからの音声ストリームの受信とリアルタイム文字起こし",
         "description": "Electronのメインプロセスから送られてくる音声データストリームを受け取り、リアルタイムで文字起こし処理を実行してUIに表示します。",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           3
         ],
@@ -184,7 +184,7 @@
             "description": "ElectronのipcMainとipcRendererを使い、メインプロセスとレンダラープロセス間で音声データをやり取りできるようにする。",
             "dependencies": [],
             "details": "メインプロセスで音声データを取得し、バッファとしてレンダラープロセスに送信する。レンダラープロセス側で受信イベントを実装する。",
-            "status": "pending"
+            "status": "done"
           },
           {
             "id": 2,
@@ -194,7 +194,7 @@
               1
             ],
             "details": "受信した音声データを適切なチャンク単位で保持し、APIに送信するためのバッファリング処理を実装する。",
-            "status": "pending"
+            "status": "done"
           },
           {
             "id": 3,
@@ -204,7 +204,7 @@
               2
             ],
             "details": "APIのストリーミングエンドポイントやWebSocket等を利用し、低遅延で文字起こし結果を取得する。APIの選定・認証・エラーハンドリングも含む。",
-            "status": "pending"
+            "status": "done"
           },
           {
             "id": 4,
@@ -214,7 +214,7 @@
               3
             ],
             "details": "新しいテキストが到着するたびにUIを即時更新し、ユーザーにフィードバックを返す。スクロールやハイライトなどのUXも考慮する。",
-            "status": "pending"
+            "status": "done"
           },
           {
             "id": 5,
@@ -224,7 +224,7 @@
               3
             ],
             "details": "エラー発生時はUIに通知し、必要に応じて自動リトライや手動リトライボタンを表示する。",
-            "status": "pending"
+            "status": "done"
           },
           {
             "id": 6,
@@ -235,7 +235,7 @@
               5
             ],
             "details": "様々な音声（マイク、システム音、異なる話者、ノイズ環境）でテストし、精度・遅延・安定性を評価。問題点があれば改善案をまとめる。",
-            "status": "pending"
+            "status": "done"
           }
         ]
       },
@@ -653,7 +653,7 @@
     ],
     "metadata": {
       "created": "2025-06-21T05:46:06.903Z",
-      "updated": "2025-06-21T07:45:40.287Z",
+      "updated": "2025-06-21T13:02:43.414Z",
       "description": "Tasks for master context"
     }
   }

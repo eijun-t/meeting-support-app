@@ -1,24 +1,74 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import TranscriptionArea from "./TranscriptionArea";
 import SummarySection from "./SummarySection";
 import SpeechSuggestions from "./SpeechSuggestions";
 import MeetingPostSection from "./MeetingPostSection";
 import MeetingTypeSelector, { MeetingType } from "./MeetingTypeSelector";
 import ControlButtons from "./ControlButtons";
+import { useWhisperTranscription } from "./WhisperTranscription";
+import ApiKeySettings from "./ApiKeySettings";
+
+interface TranscriptionEntry {
+  id: string;
+  text: string;
+  timestamp: Date;
+  speaker?: string;
+}
 
 export default function MeetingLayout() {
   const [isRecording, setIsRecording] = useState(false);
   const [meetingType, setMeetingType] = useState<MeetingType>("in-person");
+  const [transcriptions, setTranscriptions] = useState<TranscriptionEntry[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [apiKey, setApiKey] = useState<string>('');
 
-  const handleStartStop = () => {
-    setIsRecording(!isRecording);
+  const handleTranscription = useCallback((entry: TranscriptionEntry) => {
+    setTranscriptions(prev => [...prev, entry]);
+  }, []);
+
+  const handleError = useCallback((errorMessage: string) => {
+    setError(errorMessage);
+    console.error('Transcription error:', errorMessage);
+  }, []);
+
+  // Whisper文字起こしフック
+  const { 
+    isRecording: speechRecording, 
+    isSupported,
+    startRecording, 
+    stopRecording 
+  } = useWhisperTranscription({ 
+    onTranscription: handleTranscription,
+    onError: handleError,
+    apiKey 
+  });
+
+  const handleStartStop = async () => {
+    if (isRecording) {
+      await stopRecording();
+      setIsRecording(false);
+    } else {
+      const success = await startRecording();
+      if (success) {
+        setIsRecording(true);
+      }
+    }
   };
 
   const handleMeetingTypeChange = (type: MeetingType) => {
     setMeetingType(type);
   };
+
+  // Electronグローバルエラーのリスナー
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.electronAPI && window.electronAPI.onGlobalError) {
+      window.electronAPI.onGlobalError((errorMessage: string) => {
+        setError(`システムエラー: ${errorMessage}`);
+      });
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-slate-900 dark:to-indigo-900">
@@ -52,6 +102,11 @@ export default function MeetingLayout() {
           onTypeChange={handleMeetingTypeChange}
         />
 
+        {/* APIキー設定 */}
+        <div className="mb-6">
+          <ApiKeySettings onApiKeyChange={setApiKey} />
+        </div>
+
         {/* コントロールボタン */}
         <div className="mb-8">
           <ControlButtons 
@@ -78,7 +133,10 @@ export default function MeetingLayout() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* 文字起こしエリア */}
           <div>
-            <TranscriptionArea isRecording={isRecording} meetingType={meetingType} />
+            <TranscriptionArea 
+              transcriptions={transcriptions} 
+              isRecording={isRecording} 
+            />
           </div>
 
           {/* ミーティング終了後エリア */}
@@ -86,6 +144,12 @@ export default function MeetingLayout() {
             <MeetingPostSection />
           </div>
         </div>
+
+        {error && (
+          <div className="fixed bottom-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            {error}
+          </div>
+        )}
       </main>
     </div>
   );

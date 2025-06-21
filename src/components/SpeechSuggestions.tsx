@@ -9,31 +9,9 @@ interface SpeechSuggestionsProps {
 export default function SpeechSuggestions({ isRecording }: SpeechSuggestionsProps) {
   const [selectedSuggestion, setSelectedSuggestion] = useState<number | null>(null);
 
-  // サンプルの発言提案データ
+  // 発言提案データ（実際の文字起こしから生成される予定）
   const suggestions = {
-    contextBased: [
-      {
-        id: 1,
-        type: "質問",
-        text: "その点についてもう少し詳しく教えていただけますか？",
-        confidence: 0.92,
-        context: "相手の説明に対する詳細確認"
-      },
-      {
-        id: 2,
-        type: "確認",
-        text: "つまり、来週末までに第一段階を完了するということですね？",
-        confidence: 0.88,
-        context: "スケジュール確認"
-      },
-      {
-        id: 3,
-        type: "提案",
-        text: "それでは、次回のミーティングで進捗を共有していただくということでよろしいでしょうか？",
-        confidence: 0.85,
-        context: "次のアクション提案"
-      }
-    ],
+    contextBased: [],
     quickResponses: [
       "承知いたしました",
       "ありがとうございます",
@@ -92,44 +70,53 @@ export default function SpeechSuggestions({ isRecording }: SpeechSuggestionsProp
                 コンテキスト提案
               </h3>
               <div className="space-y-3">
-                {suggestions.contextBased.map((suggestion) => (
-                  <div
-                    key={suggestion.id}
-                    className={`group p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer hover:shadow-lg ${
-                      selectedSuggestion === suggestion.id
-                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 shadow-lg'
-                        : 'border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-400 bg-white dark:bg-gray-700/50'
-                    }`}
-                    onClick={() => handleSuggestionClick(suggestion.id)}
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getTypeColor(suggestion.type)}`}>
-                        {suggestion.type}
-                      </span>
-                      <div className="flex items-center space-x-2">
-                        <div className="flex items-center space-x-1">
-                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                          <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                            {Math.round(suggestion.confidence * 100)}%
-                          </span>
-                        </div>
-                        {selectedSuggestion === suggestion.id && (
-                          <div className="w-5 h-5 bg-indigo-500 rounded-full flex items-center justify-center">
-                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
+                {suggestions.contextBased.length > 0 ? (
+                  suggestions.contextBased.map((suggestion) => (
+                    <div
+                      key={suggestion.id}
+                      className={`group p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer hover:shadow-lg ${
+                        selectedSuggestion === suggestion.id
+                          ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 shadow-lg'
+                          : 'border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-400 bg-white dark:bg-gray-700/50'
+                      }`}
+                      onClick={() => handleSuggestionClick(suggestion.id)}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getTypeColor(suggestion.type)}`}>
+                          {suggestion.type}
+                        </span>
+                        <div className="flex items-center space-x-2">
+                          <div className="flex items-center space-x-1">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                              {Math.round(suggestion.confidence * 100)}%
+                            </span>
                           </div>
-                        )}
+                          {selectedSuggestion === suggestion.id && (
+                            <div className="w-5 h-5 bg-indigo-500 rounded-full flex items-center justify-center">
+                              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
                       </div>
+                      <p className="text-gray-900 dark:text-white font-medium mb-2 leading-relaxed">
+                        {suggestion.text}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {suggestion.context}
+                      </p>
                     </div>
-                    <p className="text-gray-900 dark:text-white font-medium mb-2 leading-relaxed">
-                      {suggestion.text}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {suggestion.context}
-                    </p>
+                  ))
+                ) : (
+                  <div className="text-center py-6">
+                    <svg className="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">会話が進むとAIが発言を提案します</p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
 
