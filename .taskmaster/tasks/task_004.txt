@@ -1,6 +1,6 @@
 # Task ID: 4
 # Title: Electronからの音声ストリームの受信とリアルタイム文字起こし
-# Status: pending
+# Status: done
 # Dependencies: 3
 # Priority: high
 # Description: Electronのメインプロセスから送られてくる音声データストリームを受け取り、リアルタイムで文字起こし処理を実行してUIに表示します。
@@ -16,37 +16,37 @@
 Electronメインプロセスからの音声ストリームがレンダラープロセスで正しく受信・文字起こしされ、UIにリアルタイムで表示されることを確認します。異常系（通信断、APIエラー、無音など）もテストし、ユーザーに適切なフィードバックが表示されることを検証します。
 
 # Subtasks:
-## 1. IPC通信のセットアップ [pending]
+## 1. IPC通信のセットアップ [done]
 ### Dependencies: None
 ### Description: ElectronのipcMainとipcRendererを使い、メインプロセスとレンダラープロセス間で音声データをやり取りできるようにする。
 ### Details:
 メインプロセスで音声データを取得し、バッファとしてレンダラープロセスに送信する。レンダラープロセス側で受信イベントを実装する。
 
-## 2. 音声データの受信とバッファ管理 [pending]
+## 2. 音声データの受信とバッファ管理 [done]
 ### Dependencies: 4.1
 ### Description: レンダラープロセスで音声データバッファを受信し、リアルタイムで文字起こしAPIに送信できるように管理する。
 ### Details:
 受信した音声データを適切なチャンク単位で保持し、APIに送信するためのバッファリング処理を実装する。
 
-## 3. リアルタイム文字起こしAPIとの連携 [pending]
+## 3. リアルタイム文字起こしAPIとの連携 [done]
 ### Dependencies: 4.2
 ### Description: 受信した音声データをリアルタイム文字起こしAPI（例: Google Cloud Speech-to-Text, Azure Speech-to-Text, Whisper, Web Speech APIなど）に送信し、テキストを取得する。
 ### Details:
 APIのストリーミングエンドポイントやWebSocket等を利用し、低遅延で文字起こし結果を取得する。APIの選定・認証・エラーハンドリングも含む。
 
-## 4. UIへのリアルタイム反映 [pending]
+## 4. UIへのリアルタイム反映 [done]
 ### Dependencies: 4.3
 ### Description: 文字起こし結果をNext.js画面上の文字起こしエリアにリアルタイムで表示する。
 ### Details:
 新しいテキストが到着するたびにUIを即時更新し、ユーザーにフィードバックを返す。スクロールやハイライトなどのUXも考慮する。
 
-## 5. エラー・異常系の管理 [pending]
+## 5. エラー・異常系の管理 [done]
 ### Dependencies: 4.3
 ### Description: 通信断、APIエラー、無音などの異常ケースを検知し、ユーザーに分かりやすいエラーメッセージやリトライ手段を提供する。
 ### Details:
 エラー発生時はUIに通知し、必要に応じて自動リトライや手動リトライボタンを表示する。
 
-## 6. 動作テストと評価 [pending]
+## 6. 動作テストと評価 [done]
 ### Dependencies: 4.4, 4.5
 ### Description: Electron環境でのリアルタイム文字起こし機能の動作確認と評価を行う。
 ### Details:

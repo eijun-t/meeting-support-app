@@ -20,20 +20,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
   minimizeWindow: () => ipcRenderer.invoke('minimize-window'),
   maximizeWindow: () => ipcRenderer.invoke('maximize-window'),
   closeWindow: () => ipcRenderer.invoke('close-window'),
+  
+  // Audio recording functionality
+  startRecording: () => ipcRenderer.invoke('start-recording'),
+  stopRecording: () => ipcRenderer.invoke('stop-recording'),
+  onAudioStream: (callback) => {
+    ipcRenderer.on('audio-stream', (event, data) => callback(data));
+  },
+  removeAudioStreamListener: () => {
+    ipcRenderer.removeAllListeners('audio-stream');
+  },
+  
+  // Global error handling
+  onGlobalError: (callback) => {
+    ipcRenderer.on('global-error', (event, errorMessage) => callback(errorMessage));
+  },
+  
+  // Environment variables
+  getEnvVar: (varName) => ipcRenderer.invoke('get-env-var', varName)
 });
-
-// Type definitions for TypeScript (will be useful later)
-declare global {
-  interface Window {
-    electronAPI: {
-      getAudioSources: () => Promise<any[]>;
-      requestMicrophonePermission: () => Promise<boolean>;
-      requestScreenCapturePermission: () => Promise<boolean>;
-      platform: string;
-      getAppVersion: () => Promise<string>;
-      minimizeWindow: () => Promise<void>;
-      maximizeWindow: () => Promise<void>;
-      closeWindow: () => Promise<void>;
-    };
-  }
-}

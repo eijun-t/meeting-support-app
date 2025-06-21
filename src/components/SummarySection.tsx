@@ -1,22 +1,11 @@
 "use client";
 
 export default function SummarySection() {
-  // サンプルの要約データ
+  // 要約データ（実際の文字起こしから生成される予定）
   const summaryData = {
-    keyPoints: [
-      "プロジェクトは予定通り進行中",
-      "来週末に第一段階完了予定",
-      "現時点で大きな懸念事項なし",
-      "次回ミーティングは来週火曜日に予定"
-    ],
-    actionItems: [
-      { task: "進捗レポートの作成", assignee: "田中", deadline: "2024-01-15", priority: "高" },
-      { task: "クライアント確認", assignee: "佐藤", deadline: "2024-01-12", priority: "中" }
-    ],
-    decisions: [
-      "第一段階の完了期限を来週末に設定",
-      "週次ミーティングを継続実施"
-    ]
+    keyPoints: [],
+    actionItems: [],
+    decisions: []
   };
 
   const getPriorityColor = (priority: string) => {
@@ -66,31 +55,40 @@ export default function SummarySection() {
             </div>
           </div>
           <div className="space-y-4">
-            {summaryData.keyPoints.map((point, index) => (
-              <div key={index} className="flex items-start space-x-4 bg-white/80 dark:bg-gray-800/80 rounded-xl p-4 shadow-sm">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-bold text-white">{index + 1}</span>
+            {summaryData.keyPoints.length > 0 ? (
+              summaryData.keyPoints.map((point, index) => (
+                <div key={index} className="flex items-start space-x-4 bg-white/80 dark:bg-gray-800/80 rounded-xl p-4 shadow-sm">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm font-bold text-white">{index + 1}</span>
+                  </div>
+                  <p className="text-gray-800 dark:text-gray-200 font-medium leading-relaxed text-base">
+                    {point}
+                  </p>
                 </div>
-                <p className="text-gray-800 dark:text-gray-200 font-medium leading-relaxed text-base">
-                  {point}
-                </p>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p className="text-gray-500 dark:text-gray-400">録音を開始すると、AIが重要ポイントを自動抽出します</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
 
         {/* 統計情報 */}
         <div className="grid grid-cols-3 gap-4">
           <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-center text-white shadow-lg">
-            <div className="text-2xl font-bold">15:32</div>
+            <div className="text-2xl font-bold">--:--</div>
             <div className="text-xs opacity-80 mt-1">経過時間</div>
           </div>
           <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-4 text-center text-white shadow-lg">
-            <div className="text-2xl font-bold">847</div>
+            <div className="text-2xl font-bold">0</div>
             <div className="text-xs opacity-80 mt-1">総単語数</div>
           </div>
           <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-center text-white shadow-lg">
-            <div className="text-2xl font-bold">6</div>
+            <div className="text-2xl font-bold">0</div>
             <div className="text-xs opacity-80 mt-1">話者数</div>
           </div>
         </div>
