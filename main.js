@@ -172,7 +172,7 @@ app.on('web-contents-created', (event, contents) => {
   });
 });
 
-// IPC handlers for future audio functionality
+// IPC handlers for audio functionality
 ipcMain.handle('get-audio-sources', async () => {
   try {
     const sources = await desktopCapturer.getSources({ 
@@ -182,6 +182,31 @@ ipcMain.handle('get-audio-sources', async () => {
   } catch (error) {
     console.error('Error getting audio sources:', error);
     return [];
+  }
+});
+
+
+// Get available audio output devices
+ipcMain.handle('get-audio-output-devices', async () => {
+  try {
+    // Note: Electron doesn't provide direct access to output devices
+    // This will be handled in the renderer process using Web Audio API
+    return { success: true, message: 'Use navigator.mediaDevices.enumerateDevices() in renderer' };
+  } catch (error) {
+    console.error('Error getting audio output devices:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Set audio output device (will be handled in renderer)
+ipcMain.handle('set-audio-output-device', async (event, deviceId) => {
+  try {
+    console.log('Setting audio output device:', deviceId);
+    // The actual device switching happens in the renderer process
+    return { success: true, deviceId };
+  } catch (error) {
+    console.error('Error setting audio output device:', error);
+    return { success: false, error: error.message };
   }
 });
 

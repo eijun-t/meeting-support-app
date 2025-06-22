@@ -1,11 +1,13 @@
 export interface IElectronAPI {
   startRecording: () => Promise<{ success: boolean }>;
   stopRecording: () => Promise<{ success: boolean }>;
-  onAudioStream: (callback: (data: any) => void) => void;
+  onAudioStream: (callback: (data: unknown) => void) => void;
   removeAudioStreamListener: () => void;
   onGlobalError: (callback: (errorMessage: string) => void) => void;
   getEnvVar: (varName: string) => Promise<string | null>;
-  getAudioSources?: () => Promise<any[]>;
+  getAudioSources?: () => Promise<unknown[]>;
+  getAudioOutputDevices?: () => Promise<{ success: boolean; message?: string; error?: string }>;
+  setAudioOutputDevice?: (deviceId: string) => Promise<{ success: boolean; deviceId?: string; error?: string }>;
   requestMicrophonePermission?: () => Promise<boolean>;
   requestScreenCapturePermission?: () => Promise<boolean>;
   platform?: string;
@@ -22,3 +24,5 @@ declare global {
     webkitSpeechRecognition: typeof SpeechRecognition;
   }
 }
+
+export {};

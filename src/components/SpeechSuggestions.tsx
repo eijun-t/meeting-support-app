@@ -6,12 +6,20 @@ interface SpeechSuggestionsProps {
   isRecording: boolean;
 }
 
+interface Suggestion {
+  id: number;
+  text: string;
+  type: string;
+  confidence: number;
+  context?: string;
+}
+
 export default function SpeechSuggestions({ isRecording }: SpeechSuggestionsProps) {
   const [selectedSuggestion, setSelectedSuggestion] = useState<number | null>(null);
 
   // 発言提案データ（実際の文字起こしから生成される予定）
   const suggestions = {
-    contextBased: [],
+    contextBased: [] as Suggestion[],
     quickResponses: [
       "承知いたしました",
       "ありがとうございます",

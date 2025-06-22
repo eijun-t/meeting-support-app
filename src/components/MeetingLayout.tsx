@@ -9,6 +9,8 @@ import MeetingTypeSelector, { MeetingType } from "./MeetingTypeSelector";
 import ControlButtons from "./ControlButtons";
 import { useWhisperTranscription } from "./WhisperTranscription";
 import ApiKeySettings from "./ApiKeySettings";
+import AudioSetupHelper from "./AudioSetupHelper";
+import AudioSourceStatus from "./AudioSourceStatus";
 
 interface TranscriptionEntry {
   id: string;
@@ -23,6 +25,8 @@ export default function MeetingLayout() {
   const [transcriptions, setTranscriptions] = useState<TranscriptionEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState<string>('');
+  const [audioSource, setAudioSource] = useState<string | undefined>(undefined);
+  const [audioLevel, setAudioLevel] = useState<number | undefined>(undefined);
 
   const handleTranscription = useCallback((entry: TranscriptionEntry) => {
     setTranscriptions(prev => [...prev, entry]);
@@ -31,6 +35,11 @@ export default function MeetingLayout() {
   const handleError = useCallback((errorMessage: string) => {
     setError(errorMessage);
     console.error('Transcription error:', errorMessage);
+  }, []);
+
+  const handleAudioSourceChange = useCallback((source: string, level: number) => {
+    setAudioSource(source);
+    setAudioLevel(level);
   }, []);
 
   // Whisper文字起こしフック
@@ -42,13 +51,16 @@ export default function MeetingLayout() {
   } = useWhisperTranscription({ 
     onTranscription: handleTranscription,
     onError: handleError,
-    apiKey 
+    onAudioSourceChange: handleAudioSourceChange,
+    apiKey
   });
 
   const handleStartStop = async () => {
     if (isRecording) {
       await stopRecording();
       setIsRecording(false);
+      setAudioSource(undefined);
+      setAudioLevel(undefined);
     } else {
       const success = await startRecording();
       if (success) {
@@ -63,8 +75,8 @@ export default function MeetingLayout() {
 
   // Electronグローバルエラーのリスナー
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.electronAPI && window.electronAPI.onGlobalError) {
-      window.electronAPI.onGlobalError((errorMessage: string) => {
+    if (typeof window !== 'undefined' && window.electronAPI && 'onGlobalError' in window.electronAPI) {
+      (window.electronAPI as any).onGlobalError((errorMessage: string) => {
         setError(`システムエラー: ${errorMessage}`);
       });
     }
@@ -105,7 +117,11 @@ export default function MeetingLayout() {
         {/* APIキー設定 */}
         <div className="mb-6">
           <ApiKeySettings onApiKeyChange={setApiKey} />
+          <div className="mt-2">
+            <AudioSetupHelper />
+          </div>
         </div>
+
 
         {/* コントロールボタン */}
         <div className="mb-8">
@@ -114,13 +130,14 @@ export default function MeetingLayout() {
             onStartStop={handleStartStop}
             meetingType={meetingType}
           />
+          
         </div>
 
         {/* メイン機能を横並び */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* 要約エリア */}
           <div>
-            <SummarySection />
+            <SummarySection isRecording={isRecording} transcriptions={transcriptions} />
           </div>
           
           {/* 提案エリア */}
@@ -151,6 +168,14 @@ export default function MeetingLayout() {
           </div>
         )}
       </main>
+
+
+      {/* 音声ソース状態表示 */}
+      <AudioSourceStatus 
+        isRecording={isRecording}
+        audioSource={audioSource}
+        audioLevel={audioLevel}
+      />
     </div>
   );
 }

@@ -1,20 +1,196 @@
 "use client";
 
-export default function SummarySection() {
-  // 要約データ（実際の文字起こしから生成される予定）
-  const summaryData = {
-    keyPoints: [],
-    actionItems: [],
-    decisions: []
+import { useState, useEffect, useCallback, useRef } from "react";
+
+interface TranscriptionEntry {
+  id: string;
+  text: string;
+  timestamp: Date;
+  speaker?: string;
+}
+
+interface SummaryData {
+  minutesText: string;
+  lastUpdated: Date | null;
+}
+
+interface SummarySectionProps {
+  isRecording: boolean;
+  transcriptions?: TranscriptionEntry[];
+}
+
+export default function SummarySection({ isRecording, transcriptions = [] }: SummarySectionProps) {
+  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [duration, setDuration] = useState(0);
+  const [summaryData, setSummaryData] = useState<SummaryData>({
+    minutesText: '',
+    lastUpdated: null,
+  });
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+  const generateSummaryRef = useRef<(() => void) | null>(null);
+
+  // 録音開始時に開始時刻を記録
+  useEffect(() => {
+    if (isRecording && !startTime) {
+      setStartTime(new Date());
+    } else if (!isRecording) {
+      setStartTime(null);
+      setDuration(0);
+    }
+  }, [isRecording, startTime]);
+
+  // 経過時間の更新
+  useEffect(() => {
+    let interval: NodeJS.Timeout | undefined;
+    
+    if (isRecording && startTime) {
+      interval = setInterval(() => {
+        const now = new Date();
+        const elapsed = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+        setDuration(elapsed);
+      }, 1000);
+    }
+    
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [isRecording, startTime]);
+
+  // APIキーを取得する関数
+  const getApiKey = useCallback(async (): Promise<string | null> => {
+    if (window.electronAPI && 'getEnvVar' in window.electronAPI) {
+      try {
+        const envApiKey = await (window.electronAPI as any).getEnvVar('OPENAI_API_KEY');
+        if (envApiKey) return envApiKey;
+      } catch (error) {
+        console.warn('Failed to get API key from environment:', error);
+      }
+    }
+    
+    const storedApiKey = localStorage.getItem('openai-api-key');
+    if (storedApiKey) return storedApiKey;
+    
+    return null;
+  }, []);
+
+  // 要約生成関数
+  const generateSummary = useCallback(async () => {
+    if (isGeneratingSummary || transcriptions.length === 0) {
+      return;
+    }
+
+    setIsGeneratingSummary(true);
+
+    try {
+      const apiKey = await getApiKey();
+      if (!apiKey) {
+        console.warn('[SUMMARY] API key not available');
+        return;
+      }
+
+      const allText = transcriptions
+        .map(t => `${t.speaker || '話者'}: ${t.text}`)
+        .join('\n');
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: 'system',
+              content: `あなたは議事録作成の専門家です。以下の会話内容を、議論の流れがわかるように、自然な文章で議事録としてまとめてください。
+Markdown形式を使用して、見出し、箇条書き、太字などを適宜使い、読みやすく構成してください。
+回答は、整形された議事録のテキストのみを返してください。JSONやその他の余計な文字列は含めないでください。`
+            },
+            {
+              role: 'user',
+              content: `会話内容:\n${allText}`
+            }
+          ],
+          max_tokens: 800,
+          temperature: 0.5,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      const content = result.choices[0]?.message?.content;
+      
+      if (content) {
+        setSummaryData({
+          minutesText: content.trim(),
+          lastUpdated: new Date(),
+        });
+      }
+    } catch (error) {
+      console.error('[SUMMARY] Summary generation error:', error);
+    } finally {
+      setIsGeneratingSummary(false);
+    }
+  }, [transcriptions, getApiKey, isGeneratingSummary]);
+
+  // generateSummaryのrefを更新
+  useEffect(() => {
+    generateSummaryRef.current = generateSummary;
+  }, [generateSummary]);
+
+  // 要約生成タイマー
+  useEffect(() => {
+    if (!isRecording || !startTime) {
+      return;
+    }
+
+    const intervalId = setInterval(() => {
+      if (generateSummaryRef.current) {
+        generateSummaryRef.current();
+      }
+    }, 2 * 60 * 1000); // 2分
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [isRecording, startTime]);
+
+  const formatDuration = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "高": return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
-      case "中": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300";
-      case "低": return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
-      default: return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
-    }
+  const renderContent = (content: string) => {
+    return content.split('\n').map((line, index) => {
+      if (line.startsWith('### ')) {
+        return <h3 key={index} className="text-md font-bold mt-3 mb-1 text-teal-700 dark:text-teal-300">{line.substring(4)}</h3>;
+      }
+      if (line.startsWith('## ')) {
+        return <h2 key={index} className="text-lg font-bold mt-4 mb-2 text-teal-800 dark:text-teal-200">{line.substring(3)}</h2>;
+      }
+      if (line.startsWith('# ')) {
+        return <h1 key={index} className="text-xl font-bold mt-5 mb-3 text-teal-900 dark:text-teal-100">{line.substring(2)}</h1>;
+      }
+      if (line.startsWith('* ')) {
+        return <li key={index} className="ml-5 list-disc">{line.substring(2)}</li>;
+      }
+      if (line.startsWith('- ')) {
+        return <li key={index} className="ml-5 list-disc">{line.substring(2)}</li>;
+      }
+      return <p key={index} className="my-1">{line}</p>;
+    });
   };
 
   return (
@@ -29,70 +205,42 @@ export default function SummarySection() {
               </svg>
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">AIリアルタイム要約</h2>
-              <p className="text-emerald-100 text-sm">重要ポイントを自動抽出</p>
+              <h2 className="text-xl font-bold text-white">AIリアルタイム議事録</h2>
+              <p className="text-emerald-100 text-sm">議論の流れを自動で記録</p>
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-            <span className="text-white text-sm font-medium">更新中</span>
+            {isGeneratingSummary ? (
+              <>
+                <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                <span className="text-white text-sm font-medium">生成中...</span>
+              </>
+            ) : summaryData.lastUpdated && (
+              <span className="text-white text-sm font-medium">
+                最終更新: {new Date(summaryData.lastUpdated).toLocaleTimeString()}
+              </span>
+            )}
+            <div className={`w-3 h-3 rounded-full transition-colors ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-gray-400'}`}></div>
+            <span className="text-white text-sm font-medium tabular-nums tracking-wider">{formatDuration(duration)}</span>
           </div>
         </div>
       </div>
 
-      <div className="p-6 space-y-6">
-        {/* 主要ポイント要約 - メイン */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-6 border border-blue-100 dark:border-blue-800/30">
-          <div className="flex items-center mb-6">
-            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-4">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
+      {/* コンテンツ */}
+      <div className="p-6 h-[calc(100%-100px)] overflow-y-auto">
+        {summaryData.minutesText ? (
+          <div className="prose prose-sm dark:prose-invert max-w-none">
+            {renderContent(summaryData.minutesText)}
+          </div>
+        ) : (
+          <div className="text-center text-gray-500 dark:text-gray-400 py-10">
+            <div className="w-12 h-12 mx-auto mb-4 text-gray-400">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 8h10M7 12h4m1 8l-5-5h12l-5 5z" /></svg>
             </div>
-            <div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">リアルタイム要約</h3>
-              <p className="text-blue-600 dark:text-blue-400 text-sm font-medium">AIが会話の重要ポイントを自動抽出</p>
-            </div>
+            <p className="font-semibold">議事録はまだありません</p>
+            <p className="text-sm">録音を開始すると、2分ごとに自動で生成されます。</p>
           </div>
-          <div className="space-y-4">
-            {summaryData.keyPoints.length > 0 ? (
-              summaryData.keyPoints.map((point, index) => (
-                <div key={index} className="flex items-start space-x-4 bg-white/80 dark:bg-gray-800/80 rounded-xl p-4 shadow-sm">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-sm font-bold text-white">{index + 1}</span>
-                  </div>
-                  <p className="text-gray-800 dark:text-gray-200 font-medium leading-relaxed text-base">
-                    {point}
-                  </p>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-8">
-                <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <p className="text-gray-500 dark:text-gray-400">録音を開始すると、AIが重要ポイントを自動抽出します</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* 統計情報 */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-center text-white shadow-lg">
-            <div className="text-2xl font-bold">--:--</div>
-            <div className="text-xs opacity-80 mt-1">経過時間</div>
-          </div>
-          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-4 text-center text-white shadow-lg">
-            <div className="text-2xl font-bold">0</div>
-            <div className="text-xs opacity-80 mt-1">総単語数</div>
-          </div>
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-center text-white shadow-lg">
-            <div className="text-2xl font-bold">0</div>
-            <div className="text-xs opacity-80 mt-1">話者数</div>
-          </div>
-        </div>
-
+        )}
       </div>
     </div>
   );
