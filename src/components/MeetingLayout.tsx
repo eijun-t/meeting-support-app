@@ -52,7 +52,8 @@ export default function MeetingLayout() {
     onTranscription: handleTranscription,
     onError: handleError,
     onAudioSourceChange: handleAudioSourceChange,
-    apiKey
+    apiKey,
+    meetingType
   });
 
   const handleStartStop = async () => {

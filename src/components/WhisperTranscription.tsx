@@ -14,9 +14,10 @@ interface WhisperTranscriptionProps {
   onError?: (error: string) => void;
   onAudioSourceChange?: (source: string, level: number) => void;
   apiKey?: string;
+  meetingType?: 'in-person' | 'online';
 }
 
-export function useWhisperTranscription({ onTranscription, onError, onAudioSourceChange, apiKey }: WhisperTranscriptionProps) {
+export function useWhisperTranscription({ onTranscription, onError, onAudioSourceChange, apiKey, meetingType }: WhisperTranscriptionProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
   const streamRef = useRef<MediaStream | null>(null);
@@ -73,16 +74,24 @@ export function useWhisperTranscription({ onTranscription, onError, onAudioSourc
             onAudioSourceChange(trackLabel, average);
           }
           
-          // 音声レベルが継続的に0の場合の警告（BlackHole設定不備の可能性）
-          if (average < 1 && trackLabel.toLowerCase().includes('blackhole')) {
-            // BlackHoleが検出されているのに音声レベルが0の場合
+          // 音声レベルが継続的に0の場合の警告
+          if (average < 1) {
             const now = Date.now();
             if (now - lastTranscriptionTimeRef.current > 60000) { // 1分間音声なし
               if (Math.random() < 0.001) { // 約0.1%の確率（10秒に1回程度）
-                console.warn('[WHISPER] 🔴 BlackHoleが検出されているが音声レベルが0です');
-                console.warn('[WHISPER] システム音声設定を確認してください:');
-                console.warn('[WHISPER] 1. システム環境設定 > サウンド > 出力で「Multi-Output Device」を選択');
-                console.warn('[WHISPER] 2. または音声設定で「画面共有」モードに切り替え');
+                const isInPerson = meetingType === 'in-person';
+                if (isInPerson) {
+                  console.warn('[WHISPER] 🔴 マイク音声レベルが0です');
+                  console.warn('[WHISPER] マイク設定を確認してください:');
+                  console.warn('[WHISPER] 1. マイクが正しく接続されているか確認');
+                  console.warn('[WHISPER] 2. マイクの音量を上げてください');
+                  console.warn('[WHISPER] 3. 実際に声を出して話してください');
+                } else {
+                  console.warn('[WHISPER] 🔴 BlackHoleが検出されているが音声レベルが0です');
+                  console.warn('[WHISPER] システム音声設定を確認してください:');
+                  console.warn('[WHISPER] 1. システム環境設定 > サウンド > 出力で「Multi-Output Device」を選択');
+                  console.warn('[WHISPER] 2. または音声設定で「画面共有」モードに切り替え');
+                }
               }
             }
           }
@@ -103,11 +112,12 @@ export function useWhisperTranscription({ onTranscription, onError, onAudioSourc
     } catch (error) {
       console.error('[WHISPER] Audio analysis setup failed:', error);
     }
-  }, [isRecording, onAudioSourceChange]);
+  }, [isRecording, onAudioSourceChange, meetingType]);
 
   // 音声データの詳細分析
   const analyzeAudioBlob = useCallback(async (audioBlob: Blob): Promise<void> => {
     console.log('[WHISPER] === AUDIO ANALYSIS START ===');
+    console.log('[WHISPER] Meeting type:', meetingType);
     console.log('[WHISPER] Blob size:', audioBlob.size, 'bytes');
     console.log('[WHISPER] Blob type:', audioBlob.type);
     console.log('[WHISPER] Current audio level:', Math.round(audioLevelRef.current));
@@ -137,12 +147,23 @@ export function useWhisperTranscription({ onTranscription, onError, onAudioSourc
       }
       
       if (audioLevelRef.current < 3) {
+        const trackLabel = streamRef.current?.getAudioTracks()[0]?.label || '';
+        const isInPerson = meetingType === 'in-person';
         console.warn('[WHISPER] ⚠️ VERY LOW AUDIO LEVEL:', Math.round(audioLevelRef.current));
-        console.warn('[WHISPER] This might indicate microphone input instead of system audio!');
+        console.warn('[WHISPER] Meeting type:', meetingType, 'Track label:', trackLabel);
         
-        // 音声レベルによるエラー表示を完全に無効化
-        // （BlackHole等の仮想デバイス使用時に誤検出が発生するため）
-        // 問題がある場合はコンソールログで確認可能
+        if (isInPerson) {
+          console.warn('[WHISPER] ⚠️ Low microphone level detected!');
+          console.warn('[WHISPER] Tips for microphone:');
+          console.warn('[WHISPER] 1. Check microphone permissions in browser/system');
+          console.warn('[WHISPER] 2. Increase microphone volume in system settings');
+          console.warn('[WHISPER] 3. Speak closer to the microphone');
+          console.warn('[WHISPER] 4. Make sure microphone is not muted');
+          console.warn('[WHISPER] 5. Try speaking more loudly to test microphone sensitivity');
+        } else {
+          console.warn('[WHISPER] This is expected for BlackHole/Virtual devices when no system audio is playing');
+          console.warn('[WHISPER] Make sure there is actual system audio playing (music, video, etc.)');
+        }
       }
       
       // 音声データ統計をコンソールに記録（ダウンロードは削除）
@@ -153,7 +174,7 @@ export function useWhisperTranscription({ onTranscription, onError, onAudioSourc
     }
     
     console.log('[WHISPER] === AUDIO ANALYSIS END ===');
-  }, []);
+  }, [meetingType]);
 
   const transcribeAudio = useCallback(async (audioBlob: Blob) => {
     console.log('[WHISPER] transcribeAudio called with blob size:', audioBlob.size);
@@ -234,9 +255,14 @@ export function useWhisperTranscription({ onTranscription, onError, onAudioSourc
           console.warn('[WHISPER] ⚠️ GENERIC RESPONSE DETECTED:', transcribedText, `(${genericResponseCountRef.current} consecutive)`);
           
           if (genericResponseCountRef.current >= 3) {
-            console.error('[WHISPER] 🚨 3連続でGeneric Response! システム音声がキャプチャされていません');
+            const isInPerson = meetingType === 'in-person';
+            console.error(`[WHISPER] 🚨 3連続でGeneric Response! ${isInPerson ? 'マイク音声' : 'システム音声'}がキャプチャされていません`);
             if (onError) {
-              onError('⚠️ システム音声がキャプチャされていません。音声設定を確認してください。\n\n🔧 解決方法:\n• BlackHole使用時: システム環境設定で「Multi-Output Device」を選択\n• Multi-Output DeviceでBlackHole 2ch + イヤホンを両方選択\n• システム環境設定で出力デバイスをMulti-Output Deviceに設定');
+              if (isInPerson) {
+                onError('⚠️ マイク音声がキャプチャされていません。\n\n🔧 解決方法:\n• マイクのアクセス許可を確認してください\n• マイクが正しく接続されているか確認\n• マイクの音量を上げてみてください\n• 実際に声を出して話してください');
+              } else {
+                onError('⚠️ システム音声がキャプチャされていません。音声設定を確認してください。\n\n🔧 解決方法:\n• BlackHole使用時: システム環境設定で「Multi-Output Device」を選択\n• Multi-Output DeviceでBlackHole 2ch + イヤホンを両方選択\n• システム環境設定で出力デバイスをMulti-Output Deviceに設定');
+              }
             }
             // 録音を停止して再設定を促す
             return;
@@ -266,46 +292,134 @@ export function useWhisperTranscription({ onTranscription, onError, onAudioSourc
         onError(error instanceof Error ? error.message : 'Whisper APIでエラーが発生しました');
       }
     }
-  }, [apiKey, onTranscription, onError, analyzeAudioBlob]);
+  }, [apiKey, onTranscription, onError, analyzeAudioBlob, meetingType]);
 
   const startRecording = useCallback(async () => {
     if (!isSupported || isRecording) return false;
     
-    console.log('[WHISPER] Starting BlackHole recording...');
+    const isInPerson = meetingType === 'in-person';
+    console.log(`[WHISPER] Starting recording for ${isInPerson ? 'in-person' : 'online'} meeting...`);
 
     try {
       let stream = null;
       
-      // BlackHoleデバイスを探す
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const audioInputs = devices.filter(device => device.kind === 'audioinput');
-      
-      const blackHoleDevice = audioInputs.find(device => {
-        const label = device.label.toLowerCase();
-        return label.includes('blackhole') || 
-               label.includes('virtual') ||
-               label.includes('loopback') ||
-               label.includes('soundflower');
-      });
-      
-      if (!blackHoleDevice) {
-        throw new Error('BlackHoleが見つかりません。\n\n🔧 解決方法:\n1. BlackHoleをインストール\n2. Audio MIDI設定でMulti-Output Deviceを作成\n3. BlackHole 2ch + イヤホンを選択\n4. システム環境設定で出力デバイスをMulti-Output Deviceに設定');
-      }
-      
-      console.log('[WHISPER] Using BlackHole device:', blackHoleDevice.label);
-      
-      stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          deviceId: { exact: blackHoleDevice.deviceId },
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-          sampleRate: 16000,
-          channelCount: 1,
+      if (isInPerson) {
+        // 対面会議：実際のマイクデバイスを明示的に選択
+        console.log('[WHISPER] Selecting real microphone for in-person meeting');
+        
+        // 利用可能なオーディオ入力デバイスを列挙
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const audioInputs = devices.filter(device => device.kind === 'audioinput');
+        
+        console.log('[WHISPER] Available audio input devices:', audioInputs.map(d => ({
+          deviceId: d.deviceId,
+          label: d.label,
+          groupId: d.groupId
+        })));
+        
+        // 仮想デバイス（BlackHole等）を除外して実際のマイクを選択
+        const realMicrophones = audioInputs.filter(device => {
+          const label = device.label.toLowerCase();
+          return !label.includes('blackhole') && 
+                 !label.includes('virtual') &&
+                 !label.includes('loopback') &&
+                 !label.includes('soundflower') &&
+                 !label.includes('aggregate') &&
+                 !label.includes('multi-output');
+        });
+        
+        console.log('[WHISPER] Real microphone devices found:', realMicrophones.map(d => ({
+          deviceId: d.deviceId,
+          label: d.label
+        })));
+        
+        if (realMicrophones.length === 0) {
+          throw new Error('実際のマイクデバイスが見つかりません。\\n\\n🔧 解決方法:\\n1. 物理的なマイクが接続されているか確認\\n2. システム環境設定でマイクが認識されているか確認\\n3. BlackHole以外のマイクデバイスを使用してください');
         }
-      });
-      
-      console.log('[WHISPER] ✅ BlackHole audio capture successful');
+        
+        // MacBook内蔵マイクを優先的に選択
+        let selectedMic = realMicrophones.find(device => {
+          const label = device.label.toLowerCase();
+          return label.includes('built-in') || 
+                 label.includes('internal') ||
+                 label.includes('macbook') ||
+                 label.includes('default');
+        });
+        
+        // 内蔵マイクが見つからない場合は、外部デバイス（iPhone等）を除外
+        if (!selectedMic) {
+          const nonMobileDevices = realMicrophones.filter(device => {
+            const label = device.label.toLowerCase();
+            return !label.includes('iphone') && 
+                   !label.includes('ipad') &&
+                   !label.includes('airpods') &&
+                   !label.includes('bluetooth');
+          });
+          
+          if (nonMobileDevices.length > 0) {
+            selectedMic = nonMobileDevices[0];
+          } else {
+            selectedMic = realMicrophones[0]; // フォールバック
+          }
+        }
+        console.log('[WHISPER] Selected microphone:', selectedMic.label);
+        
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            deviceId: { exact: selectedMic.deviceId },
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            sampleRate: 16000,
+            channelCount: 1
+          }
+        });
+        console.log('[WHISPER] ✅ Microphone capture successful with device:', selectedMic.label);
+        
+        // マイクの詳細情報をログ出力
+        const audioTracks = stream.getAudioTracks();
+        if (audioTracks.length > 0) {
+          const track = audioTracks[0];
+          console.log('[WHISPER] 🎤 Microphone track details:', {
+            label: track.label,
+            enabled: track.enabled,
+            muted: track.muted,
+            readyState: track.readyState,
+            settings: track.getSettings(),
+            capabilities: track.getCapabilities()
+          });
+        }
+      } else {
+        // オンライン会議：BlackHoleを使用
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const audioInputs = devices.filter(device => device.kind === 'audioinput');
+        
+        const blackHoleDevice = audioInputs.find(device => {
+          const label = device.label.toLowerCase();
+          return label.includes('blackhole') || 
+                 label.includes('virtual') ||
+                 label.includes('loopback') ||
+                 label.includes('soundflower');
+        });
+        
+        if (!blackHoleDevice) {
+          throw new Error('BlackHoleが見つかりません。\n\n🔧 解決方法:\n1. BlackHoleをインストール\n2. Audio MIDI設定でMulti-Output Deviceを作成\n3. BlackHole 2ch + イヤホンを選択\n4. システム環境設定で出力デバイスをMulti-Output Deviceに設定');
+        }
+        
+        console.log('[WHISPER] Using BlackHole device:', blackHoleDevice.label);
+        
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            deviceId: { exact: blackHoleDevice.deviceId },
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+            sampleRate: 16000,
+            channelCount: 1,
+          }
+        });
+        console.log('[WHISPER] ✅ BlackHole audio capture successful');
+      }
       
       streamRef.current = stream;
       setIsRecording(true);
@@ -324,7 +438,11 @@ export function useWhisperTranscription({ onTranscription, onError, onAudioSourc
         onAudioSourceChange(trackLabel, 0);
       }
       
-      console.log('[WHISPER] 🎉 BlackHole detected! Perfect for headphone + system audio setup');
+      if (isInPerson) {
+        console.log('[WHISPER] 🎤 Microphone detected! Perfect for in-person meeting');
+      } else {
+        console.log('[WHISPER] 🎉 BlackHole detected! Perfect for online meeting with system audio');
+      }
       
       // 音声分析の設定
       setupAudioAnalysis(stream);
@@ -415,7 +533,7 @@ export function useWhisperTranscription({ onTranscription, onError, onAudioSourc
       setIsRecording(false);
       return false;
     }
-  }, [isSupported, isRecording, transcribeAudio, onError, setupAudioAnalysis]);
+  }, [isSupported, isRecording, transcribeAudio, onError, setupAudioAnalysis, meetingType]);
 
   const stopRecording = useCallback(async () => {
     console.log('[WHISPER] Stopping recording...');
