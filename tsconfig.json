@@ -27,12 +27,12 @@
         "./src/*"
       ]
     },
-    "target": "ES2017"
+    "target": "esnext"
   },
   "include": [
     "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
     ".next/types/**/*.ts"
   ],
   "exclude": [

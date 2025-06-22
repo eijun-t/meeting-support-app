@@ -6,6 +6,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Audio sources for system audio capture
   getAudioSources: () => ipcRenderer.invoke('get-audio-sources'),
   
+  // Audio output devices
+  getAudioOutputDevices: () => ipcRenderer.invoke('get-audio-output-devices'),
+  setAudioOutputDevice: (deviceId) => ipcRenderer.invoke('set-audio-output-device', deviceId),
+  
   // Permission requests
   requestMicrophonePermission: () => ipcRenderer.invoke('request-microphone-permission'),
   requestScreenCapturePermission: () => ipcRenderer.invoke('request-screen-capture-permission'),
@@ -25,7 +29,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   startRecording: () => ipcRenderer.invoke('start-recording'),
   stopRecording: () => ipcRenderer.invoke('stop-recording'),
   onAudioStream: (callback) => {
-    ipcRenderer.on('audio-stream', (event, data) => callback(data));
+    ipcRenderer.on('audio-stream', (_, data) => callback(data));
   },
   removeAudioStreamListener: () => {
     ipcRenderer.removeAllListeners('audio-stream');
@@ -33,7 +37,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // Global error handling
   onGlobalError: (callback) => {
-    ipcRenderer.on('global-error', (event, errorMessage) => callback(errorMessage));
+    ipcRenderer.on('global-error', (_, errorMessage) => callback(errorMessage));
   },
   
   // Environment variables

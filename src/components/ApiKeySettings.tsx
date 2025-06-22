@@ -14,9 +14,9 @@ export default function ApiKeySettings({ onApiKeyChange }: ApiKeySettingsProps) 
   useEffect(() => {
     const loadApiKey = async () => {
       // 1. 環境変数から読み込み（優先）
-      if (window.electronAPI) {
+      if (window.electronAPI && 'getEnvVar' in window.electronAPI) {
         try {
-          const envApiKey = await window.electronAPI.getEnvVar('OPENAI_API_KEY');
+          const envApiKey = await (window.electronAPI as any).getEnvVar('OPENAI_API_KEY');
           if (envApiKey) {
             setApiKey(envApiKey);
             onApiKeyChange(envApiKey);
@@ -167,6 +167,7 @@ export default function ApiKeySettings({ onApiKeyChange }: ApiKeySettingsProps) 
       <div className="mt-3 text-xs text-yellow-600">
         <p>💡 APIキーはブラウザのローカルストレージに保存され、外部に送信されることはありません。</p>
       </div>
+
     </div>
   );
 }
