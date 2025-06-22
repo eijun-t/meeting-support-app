@@ -17,9 +17,10 @@ interface SummaryData {
 interface SummarySectionProps {
   isRecording: boolean;
   transcriptions?: TranscriptionEntry[];
+  onSummaryChange?: (summaryData: SummaryData) => void;
 }
 
-export default function SummarySection({ isRecording, transcriptions = [] }: SummarySectionProps) {
+export default function SummarySection({ isRecording, transcriptions = [], onSummaryChange }: SummarySectionProps) {
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [duration, setDuration] = useState(0);
   const [summaryData, setSummaryData] = useState<SummaryData>({
@@ -127,10 +128,16 @@ Markdown形式を使用して、見出し、箇条書き、太字などを適宜
       const content = result.choices[0]?.message?.content;
       
       if (content) {
-        setSummaryData({
+        const newSummaryData = {
           minutesText: content.trim(),
           lastUpdated: new Date(),
-        });
+        };
+        setSummaryData(newSummaryData);
+        
+        // Notify parent component of summary change
+        if (onSummaryChange) {
+          onSummaryChange(newSummaryData);
+        }
       }
     } catch (error) {
       console.error('[SUMMARY] Summary generation error:', error);
