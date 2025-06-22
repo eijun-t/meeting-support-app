@@ -19,6 +19,11 @@ interface TranscriptionEntry {
   speaker?: string;
 }
 
+interface SummaryData {
+  minutesText: string;
+  lastUpdated: Date | null;
+}
+
 export default function MeetingLayout() {
   const [isRecording, setIsRecording] = useState(false);
   const [meetingType, setMeetingType] = useState<MeetingType>("in-person");
@@ -27,6 +32,10 @@ export default function MeetingLayout() {
   const [apiKey, setApiKey] = useState<string>('');
   const [audioSource, setAudioSource] = useState<string | undefined>(undefined);
   const [audioLevel, setAudioLevel] = useState<number | undefined>(undefined);
+  const [summaryData, setSummaryData] = useState<SummaryData>({
+    minutesText: '',
+    lastUpdated: null,
+  });
 
   const handleTranscription = useCallback((entry: TranscriptionEntry) => {
     setTranscriptions(prev => [...prev, entry]);
@@ -42,6 +51,10 @@ export default function MeetingLayout() {
     setAudioLevel(level);
   }, []);
 
+  const handleSummaryChange = useCallback((newSummaryData: SummaryData) => {
+    setSummaryData(newSummaryData);
+  }, []);
+
   // Whisper文字起こしフック
   const { 
     isRecording: speechRecording, 
@@ -52,7 +65,8 @@ export default function MeetingLayout() {
     onTranscription: handleTranscription,
     onError: handleError,
     onAudioSourceChange: handleAudioSourceChange,
-    apiKey
+    apiKey,
+    meetingType
   });
 
   const handleStartStop = async () => {
@@ -137,12 +151,19 @@ export default function MeetingLayout() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* 要約エリア */}
           <div>
-            <SummarySection isRecording={isRecording} transcriptions={transcriptions} />
+            <SummarySection 
+              isRecording={isRecording} 
+              transcriptions={transcriptions}
+              onSummaryChange={handleSummaryChange}
+            />
           </div>
           
           {/* 提案エリア */}
           <div>
-            <SpeechSuggestions isRecording={isRecording} />
+            <SpeechSuggestions 
+              summaryData={summaryData}
+              apiKey={apiKey}
+            />
           </div>
         </div>
 
