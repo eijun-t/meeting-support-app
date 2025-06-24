@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { MeetingContext } from "../types/meetingContext";
 
 interface SummaryData {
   minutesText: string;
@@ -10,6 +11,8 @@ interface SummaryData {
 interface SpeechSuggestionsProps {
   summaryData?: SummaryData;
   apiKey?: string;
+  isPaused?: boolean;
+  meetingContext?: MeetingContext | null;
 }
 
 interface Suggestion {
@@ -21,7 +24,7 @@ interface Suggestion {
   reasoning?: string;
 }
 
-export default function SpeechSuggestions({ summaryData, apiKey }: SpeechSuggestionsProps) {
+export default function SpeechSuggestions({ summaryData, apiKey, isPaused = false, meetingContext }: SpeechSuggestionsProps) {
   const [selectedSuggestion, setSelectedSuggestion] = useState<number | null>(null);
   const [activeSuggestions, setActiveSuggestions] = useState<Suggestion[]>([]);
   const [usedSuggestions, setUsedSuggestions] = useState<Suggestion[]>([]);
@@ -71,7 +74,7 @@ ${previousSummary}
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4o',
           messages: [
             {
               role: 'system',
@@ -127,8 +130,24 @@ ${previousSummary}
       return validSuggestions; // Already have 3 of each
     }
     
-    const prompt = `会議の議事録要約を分析し、以下の要求に従って新しい提案を生成してください。
+    // 会議コンテキスト情報を整理
+    const contextInfo = meetingContext ? `
+【会議情報】
+タイトル: ${meetingContext.title || '未設定'}
+目的・背景: ${meetingContext.backgroundInfo || '未設定'}
 
+【アジェンダ】
+${meetingContext.agenda.filter(item => item.trim()).map((item, index) => `${index + 1}. ${item}`).join('\n') || '未設定'}
+
+【参加者】
+${meetingContext.participants.filter(p => p.trim()).join(', ') || '未設定'}
+
+【事前資料・参考情報】
+${meetingContext.materials.filter(m => m.status === 'completed').map(m => `- ${m.name}: ${m.content.substring(0, 500)}...`).join('\n') || 'なし'}
+` : '';
+
+    const prompt = `会議の議事録要約を分析し、事前情報も考慮して以下の要求に従って新しい提案を生成してください。
+${contextInfo}
 【最新議事録】
 ${summary}
 
@@ -177,7 +196,9 @@ ${newTopics.join(', ')}
 2. typeフィールドは必ず「提案」か「質問」のみ
 3. 提案は議論の方向性、質問は相手への確認事項として明確に区別
 4. 既存提案と重複しない内容
-5. 議事録の内容に基づいた実用的な内容`;
+5. 議事録の内容と事前情報（アジェンダ、背景、資料）を活用した実用的な内容
+6. アジェンダの進行状況や未着手項目を意識した提案
+7. 事前資料の内容を踏まえた具体的な質問や提案`;
 
     console.log('[SUGGESTIONS] Generating:', { needSuggestions, needQuestions, totalNeed });
 
@@ -188,11 +209,11 @@ ${newTopics.join(', ')}
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
-            content: '会議での発言を支援するAIアシスタントです。「提案」は議論の方向性、「質問」は相手への確認事項を明確に区別して提案します。'
+            content: '会議での発言を支援するAIアシスタントです。事前の会議情報（アジェンダ、背景、資料）と現在の議事録を総合的に分析し、「提案」は議論の方向性、「質問」は相手への確認事項を明確に区別して提案します。アジェンダの進行状況や事前資料の内容を積極的に活用します。'
           },
           {
             role: 'user',
@@ -289,7 +310,7 @@ ${newTopics.join(', ')}
 
   // Monitor summary updates and generate suggestions
   useEffect(() => {
-    if (!summaryData || !summaryData.minutesText) {
+    if (!summaryData || !summaryData.minutesText || isPaused) {
       return;
     }
 
@@ -305,7 +326,7 @@ ${newTopics.join(', ')}
     processSuggestions(summaryData.minutesText);
     lastAnalyzedCountRef.current = summaryUpdateTime;
 
-  }, [summaryData, processSuggestions]);
+  }, [summaryData, processSuggestions, isPaused]);
 
   const handleSuggestionClick = (id: number) => {
     // Toggle selection for better visibility
