@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { MeetingContext } from "../types/meetingContext";
 
 interface TranscriptionEntry {
   id: string;
@@ -16,11 +17,13 @@ interface SummaryData {
 
 interface SummarySectionProps {
   isRecording: boolean;
+  isPaused?: boolean;
   transcriptions?: TranscriptionEntry[];
   onSummaryChange?: (summaryData: SummaryData) => void;
+  meetingContext?: MeetingContext | null;
 }
 
-export default function SummarySection({ isRecording, transcriptions = [], onSummaryChange }: SummarySectionProps) {
+export default function SummarySection({ isRecording, isPaused = false, transcriptions = [], onSummaryChange, meetingContext }: SummarySectionProps) {
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [duration, setDuration] = useState(0);
   const [summaryData, setSummaryData] = useState<SummaryData>({
@@ -44,7 +47,7 @@ export default function SummarySection({ isRecording, transcriptions = [], onSum
   useEffect(() => {
     let interval: NodeJS.Timeout | undefined;
     
-    if (isRecording && startTime) {
+    if (isRecording && startTime && !isPaused) {
       interval = setInterval(() => {
         const now = new Date();
         const elapsed = Math.floor((now.getTime() - startTime.getTime()) / 1000);
@@ -57,7 +60,7 @@ export default function SummarySection({ isRecording, transcriptions = [], onSum
         clearInterval(interval);
       }
     };
-  }, [isRecording, startTime]);
+  }, [isRecording, startTime, isPaused]);
 
   // APIキーを取得する関数
   const getApiKey = useCallback(async (): Promise<string | null> => {
@@ -95,6 +98,22 @@ export default function SummarySection({ isRecording, transcriptions = [], onSum
         .map(t => `${t.speaker || '話者'}: ${t.text}`)
         .join('\n');
 
+      // 会議コンテキスト情報を整理
+      const contextInfo = meetingContext ? `
+【会議情報】
+タイトル: ${meetingContext.title || '会議'}
+目的・背景: ${meetingContext.backgroundInfo || ''}
+
+【アジェンダ】
+${meetingContext.agenda.filter(item => item.trim()).map((item, index) => `${index + 1}. ${item}`).join('\n') || ''}
+
+【参加者】
+${meetingContext.participants.filter(p => p.trim()).join(', ') || ''}
+
+【事前資料・参考情報】
+${meetingContext.materials.filter(m => m.status === 'completed').map(m => `- ${m.name}: ${m.content.substring(0, 300)}...`).join('\n') || ''}
+` : '';
+
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -106,13 +125,23 @@ export default function SummarySection({ isRecording, transcriptions = [], onSum
           messages: [
             {
               role: 'system',
-              content: `あなたは議事録作成の専門家です。以下の会話内容を、議論の流れがわかるように、自然な文章で議事録としてまとめてください。
+              content: `あなたは議事録作成の専門家です。事前の会議情報（タイトル、背景、アジェンダ、参加者、資料）を参考にして、会話内容を議論の流れがわかるように自然な文章で議事録としてまとめてください。
+
+重要な指示:
+1. 事前情報に記載された固有名詞や人名は正確に使用してください
+2. 会議のタイトルや背景情報の文脈を考慮してください
+3. アジェンダの項目と会話内容を関連付けてください
+4. 参加者情報や事前資料の内容も適宜参照してください
+
 Markdown形式を使用して、見出し、箇条書き、太字などを適宜使い、読みやすく構成してください。
 回答は、整形された議事録のテキストのみを返してください。JSONやその他の余計な文字列は含めないでください。`
             },
             {
               role: 'user',
-              content: `会話内容:\n${allText}`
+              content: `${contextInfo}
+
+【会話内容】
+${allText}`
             }
           ],
           max_tokens: 800,
@@ -153,12 +182,12 @@ Markdown形式を使用して、見出し、箇条書き、太字などを適宜
 
   // 要約生成タイマー
   useEffect(() => {
-    if (!isRecording || !startTime) {
+    if (!isRecording || !startTime || isPaused) {
       return;
     }
 
     const intervalId = setInterval(() => {
-      if (generateSummaryRef.current) {
+      if (generateSummaryRef.current && !isPaused) {
         generateSummaryRef.current();
       }
     }, 2 * 60 * 1000); // 2分
@@ -166,7 +195,7 @@ Markdown形式を使用して、見出し、箇条書き、太字などを適宜
     return () => {
       clearInterval(intervalId);
     };
-  }, [isRecording, startTime]);
+  }, [isRecording, startTime, isPaused]);
 
   const formatDuration = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
