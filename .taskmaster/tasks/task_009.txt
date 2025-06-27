@@ -1,6 +1,6 @@
 # Task ID: 9
 # Title: ファイルシステムへのローカルデータ保存
-# Status: pending
+# Status: done
 # Dependencies: 4
 # Priority: medium
 # Description: シングルユーザー向けに、文字起こしされたテキストや要約などのセッションデータをSupabaseを利用してクラウド上に保存します。認証機能は利用せず、アプリ内から直接データの保存・取得・更新・削除を行います。
@@ -15,19 +15,19 @@
 Electronアプリを再起動しても、Supabase上に保存されたデータが正しく取得・更新・削除できることを確認する。ネットワーク障害時のエラーハンドリングが適切に動作することを検証する。
 
 # Subtasks:
-## 1. Supabaseクライアントの導入と設定 [pending]
+## 1. Supabaseクライアントの導入と設定 [done]
 ### Dependencies: None
 ### Description: ElectronアプリにSupabaseのJavaScriptクライアントSDKを導入し、APIキーやURLなどの初期設定を行う。
 ### Details:
 npmで@supabase/supabase-jsをインストールし、環境変数や設定ファイルでSupabaseのURLとAPIキーを安全に管理する。
 
-## 2. データベーススキーマ設計・作成 [pending]
+## 2. データベーススキーマ設計・作成 [done]
 ### Dependencies: 9.1
 ### Description: Supabase上でセッションデータ保存用のテーブル（例: sessions）を設計・作成する。
 ### Details:
 文字起こしテキスト、要約、タイムスタンプなど必要なカラムを設計し、Supabaseの管理画面またはSQLでテーブルを作成する。ユーザーID等の認証関連カラムは不要。
 
-## 3. CRUD操作の実装 [pending]
+## 3. CRUD操作の実装 [done]
 ### Dependencies: 9.2
 ### Description: SupabaseのAPIを利用して、セッションデータの新規保存・取得・更新・削除機能を実装する。
 ### Details:

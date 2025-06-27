@@ -10,6 +10,7 @@ export default function ApiKeySettings({ onApiKeyChange }: ApiKeySettingsProps) 
   const [apiKey, setApiKey] = useState('');
   const [isVisible, setIsVisible] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const loadApiKey = async () => {
@@ -21,6 +22,7 @@ export default function ApiKeySettings({ onApiKeyChange }: ApiKeySettingsProps) 
             setApiKey(envApiKey);
             onApiKeyChange(envApiKey);
             setShowSettings(false);
+            setIsLoading(false);
             return;
           }
         } catch (error) {
@@ -37,6 +39,8 @@ export default function ApiKeySettings({ onApiKeyChange }: ApiKeySettingsProps) 
       } else {
         setShowSettings(true); // APIキーが未設定の場合は設定画面を表示
       }
+      
+      setIsLoading(false);
     };
 
     loadApiKey();
@@ -56,6 +60,11 @@ export default function ApiKeySettings({ onApiKeyChange }: ApiKeySettingsProps) 
     onApiKeyChange('');
     setShowSettings(true);
   };
+
+  // ローディング中は何も表示しない
+  if (isLoading) {
+    return null;
+  }
 
   if (!showSettings && apiKey) {
     const isFromEnv = window.electronAPI && apiKey.startsWith('sk-');
