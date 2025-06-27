@@ -10,7 +10,7 @@ import ControlButtons from "./ControlButtons";
 import ApiKeySettings from "./ApiKeySettings";
 import AudioSetupHelper from "./AudioSetupHelper";
 import MeetingPreparation from "./MeetingPreparation";
-import SessionHistory from "./SessionHistory";
+import MeetingRecords from "./MeetingRecords";
 import { MeetingContext } from "../types/meetingContext";
 import { TranscriptionEntry, SummaryData, MeetingType, Decision, ActionItem } from "../types/meeting";
 import { useWhisperTranscription } from "./WhisperTranscription";
@@ -28,7 +28,7 @@ export default function MeetingLayout() {
     lastUpdated: null,
   });
   const [meetingContext, setMeetingContext] = useState<MeetingContext | null>(null);
-  const [showSessionHistory, setShowSessionHistory] = useState(false);
+  const [showMeetingRecords, setShowMeetingRecords] = useState(false);
   const [showStopConfirm, setShowStopConfirm] = useState(false);
   const isMountedRef = useRef(true);
 
@@ -260,15 +260,15 @@ export default function MeetingLayout() {
                 スマートな要約と発言提案でミーティングを効率化
               </p>
             </div>
-            <div className="hidden md:flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
               <button
-                onClick={() => setShowSessionHistory(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                onClick={() => setShowMeetingRecords(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors shadow-md"
               >
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <span className="text-sm font-medium text-white">履歴</span>
+                <span className="text-sm font-semibold">議事録一覧</span>
               </button>
               
               <div className="flex items-center space-x-2">
@@ -367,14 +367,10 @@ export default function MeetingLayout() {
         )}
       </main>
 
-      {/* セッション履歴モーダル */}
-      {showSessionHistory && (
-        <SessionHistory 
-          onSelectSession={(sessionId) => {
-            console.log('Selected session:', sessionId);
-            setShowSessionHistory(false);
-          }}
-          onClose={() => setShowSessionHistory(false)}
+      {/* 議事録一覧モーダル */}
+      {showMeetingRecords && (
+        <MeetingRecords 
+          onClose={() => setShowMeetingRecords(false)}
         />
       )}
 
