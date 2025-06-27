@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { getJSTDate } from '../utils/dateUtils';
 
 interface TranscriptionEntry {
   id: string;
@@ -278,7 +279,7 @@ export function useWhisperTranscription({ onTranscription, onError, onAudioSourc
         const entry: TranscriptionEntry = {
           id: Date.now().toString(),
             text: transcribedText,
-          timestamp: new Date(),
+          timestamp: getJSTDate(),
           speaker: '話者'
         };
           console.log('[WHISPER] Transcription result:', entry.text);

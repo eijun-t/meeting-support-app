@@ -1,61 +1,62 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import TranscriptionArea from "./TranscriptionArea";
 import SummarySection from "./SummarySection";
 import SpeechSuggestions from "./SpeechSuggestions";
 import MeetingPostSection from "./MeetingPostSection";
-import MeetingTypeSelector, { MeetingType } from "./MeetingTypeSelector";
+import MeetingTypeSelector from "./MeetingTypeSelector";
 import ControlButtons from "./ControlButtons";
-import { useWhisperTranscription } from "./WhisperTranscription";
 import ApiKeySettings from "./ApiKeySettings";
 import AudioSetupHelper from "./AudioSetupHelper";
 import MeetingPreparation from "./MeetingPreparation";
 import SessionHistory from "./SessionHistory";
 import { MeetingContext } from "../types/meetingContext";
+import { TranscriptionEntry, SummaryData, MeetingType, Decision, ActionItem } from "../types/meeting";
+import { useWhisperTranscription } from "./WhisperTranscription";
+import { ExtractionService } from "../services/extractionService";
 import { SessionService } from "../services/supabase";
 
-interface TranscriptionEntry {
-  id: string;
-  text: string;
-  timestamp: Date;
-  speaker?: string;
-}
-
-interface SummaryData {
-  minutesText: string;
-  lastUpdated: Date | null;
-}
-
 export default function MeetingLayout() {
-  const [isRecording, setIsRecording] = useState(false);
+  // Basic state
   const [meetingType, setMeetingType] = useState<MeetingType>("in-person");
   const [transcriptions, setTranscriptions] = useState<TranscriptionEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState<string>('');
-  const [audioSource, setAudioSource] = useState<string | undefined>(undefined);
-  const [audioLevel, setAudioLevel] = useState<number | undefined>(undefined);
   const [summaryData, setSummaryData] = useState<SummaryData>({
     minutesText: '',
     lastUpdated: null,
   });
   const [meetingContext, setMeetingContext] = useState<MeetingContext | null>(null);
   const [showSessionHistory, setShowSessionHistory] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [showStopConfirm, setShowStopConfirm] = useState(false);
+  const isMountedRef = useRef(true);
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  // Event handlers
   const handleTranscription = useCallback((entry: TranscriptionEntry) => {
     setTranscriptions(prev => [...prev, entry]);
   }, []);
 
   const handleError = useCallback((errorMessage: string) => {
     setError(errorMessage);
-    console.error('Transcription error:', errorMessage);
+    console.error('Error:', errorMessage);
+  }, []);
+
+  const handleSuccess = useCallback((message: string) => {
+    setError(message); // Using error state for success message too
+    setTimeout(() => setError(null), 3000);
   }, []);
 
   const handleAudioSourceChange = useCallback((source: string, level: number) => {
-    setAudioSource(source);
-    setAudioLevel(level);
+    // Audio source info is now just logged, not stored
+    console.log('[AUDIO]', source, 'Level:', Math.round(level));
   }, []);
 
   const handleSummaryChange = useCallback((newSummaryData: SummaryData) => {
@@ -66,52 +67,7 @@ export default function MeetingLayout() {
     setMeetingContext(context);
   }, []);
 
-  // Save session to Supabase
-  const saveSession = useCallback(async () => {
-    if (!meetingContext || transcriptions.length === 0) {
-      console.warn('No data to save');
-      return;
-    }
-
-    setIsSaving(true);
-    
-    try {
-      const sessionData = {
-        title: meetingContext.title || `会議 ${new Date().toLocaleDateString()}`,
-        status: 'completed' as const,
-        duration: Math.floor((Date.now() - (transcriptions[0]?.timestamp?.getTime() || Date.now())) / 1000),
-        participant_count: meetingContext.participants.filter(p => p.trim()).length || 1,
-        transcription_count: transcriptions.length,
-        has_summary: !!summaryData.minutesText,
-        has_materials: meetingContext.materials.length > 0,
-        transcriptions: transcriptions,
-        summary_data: summaryData,
-        meeting_context: meetingContext
-      };
-
-      const sessionId = await SessionService.saveSession(sessionData);
-      
-      if (sessionId) {
-        console.log('Session saved successfully:', sessionId);
-        // Clear current session data
-        setTranscriptions([]);
-        setSummaryData({ minutesText: '', lastUpdated: null });
-        setMeetingContext(null);
-        // Show success message
-        setError('会議が正常に保存されました');
-        setTimeout(() => setError(null), 3000);
-      } else {
-        setError('会議の保存中にエラーが発生しました');
-      }
-    } catch (error) {
-      console.error('Failed to save session:', error);
-      setError('会議の保存中にエラーが発生しました');
-    } finally {
-      setIsSaving(false);
-    }
-  }, [meetingContext, transcriptions, summaryData]);
-
-  // Whisper文字起こしフック
+  // Whisper transcription hook
   const { 
     isPaused,
     startRecording, 
@@ -126,58 +82,165 @@ export default function MeetingLayout() {
     meetingType
   });
 
-  // 録音開始
+  // Simple state for processing
+  const [isRecording, setIsRecording] = useState(false);
+  const [decisions, setDecisions] = useState<Decision[]>([]);
+  const [actionItems, setActionItems] = useState<ActionItem[]>([]);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Recording control handlers
   const handleStart = useCallback(async () => {
+    console.log('[MEETING] Starting new recording - clearing previous session data');
+    setSummaryData({ minutesText: '', lastUpdated: null });
+    setDecisions([]);
+    setActionItems([]);
+    setError(null);
+    
     const success = await startRecording();
     if (success) {
       setIsRecording(true);
+      // Clear transcriptions only after successful recording start
+      setTranscriptions([]);
     }
   }, [startRecording]);
 
-  // 一時停止/再開
   const handlePause = useCallback(() => {
     if (isPaused) {
       resumeRecording();
-      console.log('Recording resumed');
     } else {
       pauseRecording();
-      console.log('Recording paused');
     }
   }, [isPaused, pauseRecording, resumeRecording]);
 
-  // 終了確認
   const handleStopRequest = useCallback(() => {
+    console.log('[MEETING] Stop request triggered');
     setShowStopConfirm(true);
   }, []);
 
-  // 終了実行
   const handleStopConfirm = useCallback(async () => {
+    if (!isMountedRef.current) return;
+    
     setShowStopConfirm(false);
     await stopRecording();
     setIsRecording(false);
-    setAudioSource(undefined);
-    setAudioLevel(undefined);
     
-    // Auto-save session after stopping recording
+    console.log('[MEETING] Recording stopped, checking transcriptions...');
+    
+    // Extract decisions and action items first, then save session
     if (transcriptions.length > 0) {
-      await saveSession();
-    }
-  }, [stopRecording, transcriptions, saveSession]);
+      console.log('[MEETING] Starting post-meeting processing...');
+      console.log('[MEETING] Transcriptions count:', transcriptions.length);
+      console.log('[MEETING] API Key available:', !!apiKey);
+      console.log('[MEETING] Meeting context:', !!meetingContext);
+      
+      if (!isMountedRef.current) return;
+      
+      // Batch loading state updates
+      setIsExtracting(true);
+      setIsSaving(true);
 
-  // 終了キャンセル
+      // Extract decisions and action items
+      let extractedDecisions: Decision[] = [];
+      let extractedActionItems: ActionItem[] = [];
+      
+      try {
+        console.log('[MEETING] Calling ExtractionService...');
+        const result = await ExtractionService.extractDecisionsAndActions(
+          transcriptions,
+          meetingContext,
+          apiKey
+        );
+        
+        if (!isMountedRef.current) return;
+        
+        console.log('[MEETING] ExtractionService completed:', result);
+        
+        extractedDecisions = result.decisions;
+        extractedActionItems = result.action_items;
+        
+        // Batch state updates
+        setDecisions(extractedDecisions);
+        setActionItems(extractedActionItems);
+        setIsExtracting(false);
+        
+        console.log('[MEETING] Extraction completed');
+        console.log('[MEETING] Decisions count:', extractedDecisions.length);
+        console.log('[MEETING] Action items count:', extractedActionItems.length);
+
+      } catch (error) {
+        console.error('[MEETING] Extraction failed:', error);
+        if (isMountedRef.current) {
+          setError('決定事項・アクションアイテムの抽出中にエラーが発生しました');
+          setIsExtracting(false);
+        }
+      }
+      
+      // Save session (will include extracted data)
+      try {
+        const sessionData = {
+          title: meetingContext?.title || `会議 ${new Date().toLocaleDateString()}`,
+          status: 'completed' as const,
+          duration: Math.floor((Date.now() - (transcriptions[0]?.timestamp?.getTime() || Date.now())) / 1000),
+          participant_count: meetingContext?.participants?.filter(p => p.trim()).length || 1,
+          transcription_count: transcriptions.length,
+          has_summary: !!summaryData.minutesText,
+          has_materials: (meetingContext?.materials?.length ?? 0) > 0,
+          transcriptions: transcriptions,
+          summary_data: summaryData,
+          meeting_context: meetingContext,
+          decisions: extractedDecisions,
+          action_items: extractedActionItems
+        };
+
+        const sessionId = await SessionService.saveSession(sessionData);
+        
+        if (!isMountedRef.current) return;
+        
+        if (sessionId) {
+          console.log('[MEETING] Session saved successfully with extracted data:', sessionId);
+          
+          // Show success message
+          setError('会議が正常に保存されました');
+          setTimeout(() => {
+            if (isMountedRef.current) {
+              setError(null);
+            }
+          }, 3000);
+          
+        } else {
+          if (isMountedRef.current) {
+            setError('会議の保存中にエラーが発生しました');
+          }
+        }
+      } catch (error) {
+        console.error('[MEETING] Failed to save session:', error);
+        if (isMountedRef.current) {
+          setError('会議の保存中にエラーが発生しました');
+        }
+      } finally {
+        if (isMountedRef.current) {
+          setIsSaving(false);
+        }
+      }
+    } else {
+      console.warn('[MEETING] No transcriptions to process');
+      console.warn('[MEETING] Transcriptions length:', transcriptions.length);
+    }
+  }, [stopRecording, transcriptions, meetingContext, apiKey, summaryData]);
+
   const handleStopCancel = useCallback(() => {
     setShowStopConfirm(false);
   }, []);
-
 
   const handleMeetingTypeChange = (type: MeetingType) => {
     setMeetingType(type);
   };
 
-  // Electronグローバルエラーのリスナー
+  // Electron global error listener
   useEffect(() => {
     if (typeof window !== 'undefined' && window.electronAPI && 'onGlobalError' in window.electronAPI) {
-      (window.electronAPI as any).onGlobalError((errorMessage: string) => {
+      (window.electronAPI as {onGlobalError: (callback: (message: string) => void) => void}).onGlobalError((errorMessage: string) => {
         setError(`システムエラー: ${errorMessage}`);
       });
     }
@@ -235,7 +298,6 @@ export default function MeetingLayout() {
           </div>
         </div>
 
-
         {/* 会議準備 */}
         <div className="mb-6">
           <MeetingPreparation onContextChange={handleMeetingContextChange} />
@@ -252,7 +314,6 @@ export default function MeetingLayout() {
             meetingType={meetingType}
             isSaving={isSaving}
           />
-          
         </div>
 
         {/* メイン機能を横並び */}
@@ -291,7 +352,11 @@ export default function MeetingLayout() {
 
           {/* ミーティング終了後エリア */}
           <div>
-            <MeetingPostSection />
+            <MeetingPostSection 
+              decisions={decisions}
+              actionItems={actionItems}
+              isLoading={isExtracting}
+            />
           </div>
         </div>
 

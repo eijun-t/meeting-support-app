@@ -1,4 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
+import { getJSTISOString } from '../utils/dateUtils';
+import { TranscriptionEntry, SummaryData, Decision, ActionItem } from '../types/meeting';
+import { MeetingContext } from '../types/meetingContext';
 
 const supabaseUrl = 'https://ibsphicrdtezjtjpeepr.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlic3BoaWNyZHRlemp0anBlZXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3NTczNTUsImV4cCI6MjA2NjMzMzM1NX0.KHEX_uireip4SLMGYuh-Uam4YduA43ELSjskFEf7-G4';
@@ -6,22 +9,6 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Database types
-export interface Decision {
-  id: string;
-  content: string;
-  decided_by?: string;
-  timestamp: string;
-}
-
-export interface ActionItem {
-  id: string;
-  content: string;
-  assignee?: string;
-  due_date?: string;
-  status: 'pending' | 'in_progress' | 'completed';
-  timestamp: string;
-}
-
 export interface SessionData {
   id?: string;
   title: string;
@@ -34,9 +21,11 @@ export interface SessionData {
   transcription_count: number;
   has_summary: boolean;
   has_materials: boolean;
-  transcriptions: any[];
-  summary_data: any;
-  meeting_context: any;
+  transcriptions: TranscriptionEntry[];
+  summary_data: SummaryData;
+  meeting_context: MeetingContext | null;
+  decisions: Decision[];
+  action_items: ActionItem[];
 }
 
 export interface SessionListItem {
@@ -62,7 +51,7 @@ export class SessionService {
         .from('sessions')
         .insert([{
           ...sessionData,
-          completed_at: new Date().toISOString()
+          completed_at: getJSTISOString()
         }])
         .select('id')
         .single();
@@ -152,7 +141,7 @@ export class SessionService {
         .from('sessions')
         .update({ 
           status,
-          updated_at: new Date().toISOString()
+          updated_at: getJSTISOString()
         })
         .eq('id', sessionId);
 

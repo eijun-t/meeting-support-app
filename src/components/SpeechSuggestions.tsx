@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { MeetingContext } from "../types/meetingContext";
+import { getJSTISOString } from "../utils/dateUtils";
 
 interface SummaryData {
   minutesText: string;
@@ -31,6 +32,18 @@ export default function SpeechSuggestions({ summaryData, apiKey, isPaused = fals
   const [isGenerating, setIsGenerating] = useState(false);
   const lastAnalyzedCountRef = useRef(0);
   const previousSummaryRef = useRef<string>('');
+  const isMountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   // Stage 1: Validate existing suggestions
   const validateExistingSuggestions = useCallback(async (currentSuggestions: Suggestion[], newSummary: string, previousSummary: string) => {
@@ -67,6 +80,10 @@ ${previousSummary}
   "summaryDifference": "前回との主な違い"
 }`;
 
+      // Create abort controller for this request
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+      
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -87,7 +104,8 @@ ${previousSummary}
           ],
           temperature: 0.3,
           max_tokens: 500
-        })
+        }),
+        signal: abortController.signal
       });
 
       if (!response.ok) {
@@ -202,6 +220,10 @@ ${newTopics.join(', ')}
 
     console.log('[SUGGESTIONS] Generating:', { needSuggestions, needQuestions, totalNeed });
 
+    // Create abort controller for this request
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -222,7 +244,8 @@ ${newTopics.join(', ')}
         ],
         temperature: 0.7,
         max_tokens: 1000
-      })
+      }),
+      signal: abortController.signal
     });
 
     if (!response.ok) {
@@ -256,11 +279,12 @@ ${newTopics.join(', ')}
 
   // Main suggestion processing function
   const processSuggestions = useCallback(async (summary: string) => {
-    if (!apiKey || !summary) {
-      console.log('[SUGGESTIONS] No API key or summary available');
+    if (!apiKey || !summary || !isMountedRef.current) {
+      console.log('[SUGGESTIONS] No API key or summary available, or component unmounted');
       return;
     }
 
+    if (!isMountedRef.current) return;
     setIsGenerating(true);
     console.log('[SUGGESTIONS] Processing suggestions with 2-stage validation...');
 
@@ -279,6 +303,8 @@ ${newTopics.join(', ')}
         reason: validation.updateReason
       });
 
+      if (!isMountedRef.current) return;
+      
       if (!validation.needsUpdate && validation.validSuggestions.length >= 2) {
         console.log('[SUGGESTIONS] Maintaining existing suggestions - no update needed');
         console.log('[SUGGESTIONS] Current suggestions will be preserved');
@@ -298,15 +324,23 @@ ${newTopics.join(', ')}
         validation.newTopics
       );
 
+      if (!isMountedRef.current) return;
+      
       setActiveSuggestions(finalSuggestions);
       previousSummaryRef.current = summary;
 
     } catch (error) {
-      console.error('[SUGGESTIONS] Error processing suggestions:', error);
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('[SUGGESTIONS] Request aborted due to component unmount');
+      } else {
+        console.error('[SUGGESTIONS] Error processing suggestions:', error);
+      }
     } finally {
-      setIsGenerating(false);
+      if (isMountedRef.current) {
+        setIsGenerating(false);
+      }
     }
-  }, [apiKey, activeSuggestions, validateExistingSuggestions, generateOrUpdateSuggestions]);
+  }, [apiKey, validateExistingSuggestions, generateOrUpdateSuggestions]);
 
   // Monitor summary updates and generate suggestions
   useEffect(() => {
@@ -359,7 +393,7 @@ ${newTopics.join(', ')}
     const feedback = {
       suggestionId,
       action,
-      timestamp: new Date().toISOString(),
+      timestamp: getJSTISOString(),
       summaryContext: summaryData?.minutesText?.substring(0, 500) || ''
     };
     
