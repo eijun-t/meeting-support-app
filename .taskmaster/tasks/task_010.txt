@@ -29,9 +29,9 @@ End-to-end test the complete user flow, including all steps from PRD.
 ### Details:
 グローバル状態管理の実装、エラー状態の管理、ユーザーへの適切なフィードバック表示を行う。
 
-## 4. エンドツーエンドテストの実装 [pending]
+## 4. PlaywrightによるE2Eテスト環境の構築と基本テストの実装 [pending]
 ### Dependencies: 10.2, 10.3
-### Description: PRDに記載された全ユーザーフローのエンドツーエンドテストを実装・実行する。
+### Description: Playwrightを用いたエンドツーエンドテスト環境を構築し、基本的なハッピーパスシナリオのテストコードを実装する。
 ### Details:
-自動テストスイートの作成、手動テストケースの設計、パフォーマンステストの実装を行う。
+Playwrightのインストール、初期設定、テストランナーのセットアップ、主要ユーザーフロー（会議開始から終了まで）のハッピーパステストコード作成を含む。
 
