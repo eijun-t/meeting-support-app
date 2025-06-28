@@ -15,7 +15,10 @@
       "Bash(grep:*)",
       "Bash(rg:*)",
       "Bash(node:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(npx playwright:*)",
+      "Bash(mkdir:*)",
+      "Bash(npm test:*)"
     ],
     "deny": []
   }

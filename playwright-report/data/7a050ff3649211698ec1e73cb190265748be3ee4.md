@@ -1,0 +1,101 @@
+# Page snapshot
+
+```yaml
+- banner:
+  - heading "AI会議アシスタント" [level=1]
+  - paragraph: スマートな要約と発言提案でミーティングを効率化
+  - button "議事録一覧":
+    - img
+    - text: 議事録一覧
+  - text: AI稼働中
+- main:
+  - text: "音声入力:"
+  - button "対面会議":
+    - img
+    - text: 対面会議
+  - button "オンラインMTG":
+    - img
+    - text: オンラインMTG
+  - text: マイク音声を使用
+  - img
+  - heading "OpenAI APIキーの設定が必要です" [level=3]
+  - paragraph:
+    - text: Whisper APIを使用してリアルタイム文字起こしを行うには、OpenAI APIキーが必要です。
+    - link "こちら":
+      - /url: https://platform.openai.com/api-keys
+    - text: から取得できます。
+  - paragraph: 💡 環境変数での設定（推奨）
+  - paragraph:
+    - text: プロジェクトルートに
+    - code: .env
+    - text: ファイルを作成し、以下を追加：
+  - code: OPENAI_API_KEY=sk-your-api-key-here
+  - text: OpenAI APIキー
+  - textbox "sk-...": it-company-key
+  - button:
+    - img
+  - button "保存"
+  - button "クリア"
+  - paragraph: 💡 APIキーはブラウザのローカルストレージに保存され、外部に送信されることはありません。
+  - button "音声キャプチャでお困りですか？"
+  - img
+  - heading "会議準備" [level=2]
+  - paragraph: 事前情報・資料の準備
+  - text: 会議タイトル
+  - textbox "会議のタイトルを入力...": Sprint 24 Planning Meeting
+  - text: 会議の背景・目的
+  - textbox "会議の背景情報や目的を入力...": 2週間スプリントの計画立案
+  - text: アジェンダ
+  - button "+ 項目追加"
+  - text: "1."
+  - textbox "アジェンダ項目を入力..."
+  - button [disabled]:
+    - img
+  - text: 参加者
+  - button "+ 参加者追加"
+  - textbox "参加者名を入力..."
+  - button [disabled]:
+    - img
+  - text: 関連資料
+  - img
+  - paragraph: ファイルをドラッグ&ドロップまたは
+  - button "ファイルを選択"
+  - paragraph: "対応形式: PDF, Office文書, テキスト, 画像ファイル"
+  - text: 関連Webサイト
+  - textbox "https://example.com"
+  - button "追加" [disabled]
+  - button "開始":
+    - img
+    - text: 開始
+  - text: 待機中 マイク音声
+  - img
+  - heading "AIリアルタイム議事録" [level=2]
+  - paragraph: 議論の流れを自動で記録
+  - text: 0:00
+  - img
+  - paragraph: 議事録はまだありません
+  - paragraph: 録音を開始すると、2分ごとに自動で生成されます。
+  - img
+  - heading "AI提案" [level=2]
+  - paragraph: 議論の方向性と確認事項を提案
+  - text: 待機中
+  - heading "アクティブな提案 (0/6)" [level=3]
+  - img
+  - paragraph: 議事録が生成されるとAIが提案します（2分ごと更新）
+  - heading "リアルタイム文字起こし" [level=2]
+  - text: 0 件の発言
+  - paragraph: 録音を開始すると、ここに文字起こしが表示されます
+  - img
+  - heading "ミーティング終了後" [level=2]
+  - paragraph: 会議終了時に自動生成されます
+  - text: 待機中
+  - img
+  - heading "アクションアイテム" [level=3]
+  - paragraph: ミーティング終了後に自動生成されます
+  - img
+  - heading "決定事項" [level=3]
+  - paragraph: ミーティング終了後に自動生成されます
+- alert
+- button "Open Next.js Dev Tools":
+  - img
+```
